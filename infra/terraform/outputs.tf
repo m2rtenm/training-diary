@@ -4,8 +4,13 @@ output "app_url" {
 }
 
 output "cloudfront_domain_name" {
-  description = "CloudFront distribution domain used by the Route 53 aliases."
+  description = "CNAME target for stride.mandla.tech in Zone.ee."
   value       = aws_cloudfront_distribution.app.domain_name
+}
+
+output "dns_cname_host" {
+  description = "Host/name value to create in the external DNS provider."
+  value       = "stride"
 }
 
 output "bucket_name" {

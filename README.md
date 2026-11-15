@@ -21,7 +21,7 @@ npm run build
 
 ## Deploy to AWS with Terraform
 
-The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront and creates Route 53 `A` and `AAAA` aliases for `stride.mandla.tech` in the existing public `mandla.tech` hosted zone. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. Set `route53_aws_profile` in `terraform.tfvars` if DNS is managed in a different AWS profile/account from the app. The AWS identities need permission to read ACM certificates in `us-east-1`, read the public hosted zone, and update its records. State is local by default; keep the state file private and back it up securely.
+The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. DNS remains with Zone.ee: after applying Terraform, add a CNAME for `stride` whose target is `terraform output -raw cloudfront_domain_name`. State is local by default; keep the state file private and back it up securely.
 
 ```sh
 cd infra/terraform
@@ -30,15 +30,17 @@ terraform plan
 terraform apply
 ```
 
-After applying, from the repository root:
+After Terraform is applied, run `terraform output -raw cloudfront_domain_name` from `infra/terraform` and use the returned CloudFront hostname as the DNS target. Add this record in Zone.ee's DNS management:
 
-```sh
-npm run build
-aws s3 sync dist/ s3://$(cd infra/terraform && terraform output -raw bucket_name)/ --delete
-aws cloudfront create-invalidation --distribution-id $(cd infra/terraform && terraform output -raw distribution_id) --paths '/*'
-```
+| Field | Value |
+| --- | --- |
+| Type | CNAME |
+| Host/name | `stride` |
+| Target | CloudFront hostname returned by Terraform |
 
-AWS free usage is account- and date-dependent. This setup uses services that may have free allowances, but exceeding them can incur charges, and CloudFront usage is not a guarantee of $0. The domain name is assumed to already be registered and managed in an existing Route 53 public zone. Check the current [AWS Free Tier](https://aws.amazon.com/free/) before deploying. The app works locally as a PWA without AWS.
+Zone.ee documents CNAME as an available record type in its DNS manager. DNS changes can take time to propagate; its guide says 1–2 hours on nearby networks and up to 24 hours worldwide ([Zone.ee DNS record guide](https://www.zone.ee/help/en/kb/changing-dns-records-2/)).
+
+AWS free usage is account- and date-dependent. This setup uses services that may have free allowances, but exceeding them can incur charges, and CloudFront usage is not a guarantee of $0. Check the current [AWS Free Tier](https://aws.amazon.com/free/) before deploying. The app works locally as a PWA without AWS.
 
 ## CI/CD deployment
 

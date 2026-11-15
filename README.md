@@ -1,6 +1,6 @@
 # Stride training diary
 
-A private, offline-friendly training and rehabilitation diary PWA. Entries are stored in the browser on the device. There is no account, API, analytics, or cloud database. Use **Export backup** regularly to save a JSON copy somewhere safe; importing a backup replaces the current diary on that device.
+A Cognito-authenticated, offline-friendly training and rehabilitation diary PWA. Entries are stored in the browser on the device; Cognito is used only to control app access. There is no diary API, analytics, or cloud database. Use **Export backup** regularly to save a JSON copy somewhere safe; importing a backup replaces the current diary on that device.
 
 Add the exercises and instructions from your physiotherapist in the Rehab view. The app records sessions and how they felt; it does not prescribe a progression or assess an injury.
 
@@ -21,11 +21,13 @@ npm run build
 
 ## Deploy to AWS with Terraform
 
-The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. DNS remains with Zone.ee: after applying Terraform, add a CNAME for `stride` whose target is `terraform output -raw cloudfront_domain_name`. State is local by default; keep the state file private and back it up securely.
+The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. It also creates a Cognito user pool with self-registration disabled, an OAuth authorization-code client, required software-token MFA, and a hosted sign-in domain. Create your own Cognito user administratively after apply. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. DNS remains with Zone.ee: after applying Terraform, add a CNAME for `stride` whose target is `terraform output -raw cloudfront_domain_name`. State is local by default; keep the state file private and back it up securely.
 
 ```sh
 cd infra/terraform
 terraform init
+cp terraform.tfvars.example terraform.tfvars
+# Set cognito_domain_prefix in terraform.tfvars to a globally unique value.
 terraform plan
 terraform apply
 ```
@@ -51,12 +53,19 @@ After the initial Terraform apply, add these values under the GitHub repository'
 - Secret `AWS_DEPLOY_ROLE_ARN`: `terraform output -raw github_actions_deploy_role_arn`
 - Variable `DEPLOY_BUCKET_NAME`: `terraform output -raw bucket_name`
 - Variable `CLOUDFRONT_DISTRIBUTION_ID`: `terraform output -raw distribution_id`
+- Variable `COGNITO_AUTHORITY`: `terraform output -raw cognito_issuer`
+- Variable `COGNITO_CLIENT_ID`: `terraform output -raw cognito_client_id`
+- Variable `COGNITO_HOSTED_UI`: `terraform output -raw cognito_hosted_ui_domain`
+
+Create your Cognito user with the AWS Cognito console (User pools → Stride pool → Users → Create user). Self-registration is disabled. The pool requires MFA enrollment; enroll an authenticator app during first sign-in. For local builds, copy `.env.example` to `.env.local` and set the same three values.
 
 The dedicated role is restricted to this repository's `main` branch and only has permission to upload/delete objects in the app bucket and create invalidations for this CloudFront distribution. The production account already has GitHub's OIDC provider registered. The workflow is in `.github/workflows/deploy.yml`.
 
 ## Data and security
 
-- Diary entries remain in this browser's local storage and are not transmitted to AWS.
+- Cognito requires sign-in before the diary UI is displayed. OAuth uses authorization code + PKCE; tokens are kept in session storage, not local storage.
+- Static website files can still be downloaded by anyone who knows the URL. This architecture gates app functionality rather than the HTML/JavaScript delivery itself. Diary entries remain in this browser's local storage and are not transmitted to AWS.
 - Hosting uses private S3 origin access through CloudFront OAC; public S3 access is blocked.
 - HTTPS is enforced and the response policy sets CSP, HSTS, frame, MIME, and referrer protections.
 - Avoid entering highly sensitive medical information on a shared device. Use the browser's device lock and keep backups secure.
+- Cognito authentication is not identity-bound encryption of local diary data. Anyone with access to the unlocked browser profile can read its local storage; sign out and device security matter.

@@ -29,8 +29,25 @@ jobs:
       - name: Install dependencies
         run: npm ci --loglevel=error
 
+      - name: Check dependency advisories
+        run: npm audit --audit-level=high
+
+      - name: Validate Cognito build configuration
+        env:
+          COGNITO_AUTHORITY: ${{ vars.COGNITO_AUTHORITY }}
+          COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
+          COGNITO_HOSTED_UI: ${{ vars.COGNITO_HOSTED_UI }}
+        run: |
+          test -n "$COGNITO_AUTHORITY" || { echo "Missing COGNITO_AUTHORITY repository variable"; exit 1; }
+          test -n "$COGNITO_CLIENT_ID" || { echo "Missing COGNITO_CLIENT_ID repository variable"; exit 1; }
+          test -n "$COGNITO_HOSTED_UI" || { echo "Missing COGNITO_HOSTED_UI repository variable"; exit 1; }
+
       - name: Build PWA
         run: npm run build
+        env:
+          VITE_COGNITO_AUTHORITY: ${{ vars.COGNITO_AUTHORITY }}
+          VITE_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
+          VITE_COGNITO_HOSTED_UI: ${{ vars.COGNITO_HOSTED_UI }}
 
       - name: Upload production bundle
         uses: actions/upload-artifact@v4

@@ -27,3 +27,32 @@ output "github_actions_deploy_role_arn" {
   description = "Add this as the AWS_DEPLOY_ROLE_ARN GitHub Actions secret."
   value       = aws_iam_role.github_deploy.arn
 }
+
+output "cognito_user_pool_id" {
+  description = "Cognito user pool ID used by the frontend build."
+  value       = aws_cognito_user_pool.app.id
+}
+
+output "cognito_client_id" {
+  description = "Public Cognito app client ID used by the frontend build."
+  value       = aws_cognito_user_pool_client.app.id
+}
+
+output "cognito_issuer" {
+  description = "Cognito OIDC issuer URL."
+  value       = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.app.id}"
+}
+
+output "cognito_hosted_ui_domain" {
+  description = "Cognito hosted UI hostname for the frontend build."
+  value       = "https://${aws_cognito_user_pool_domain.app.domain}.auth.${var.aws_region}.amazoncognito.com"
+}
+
+output "cognito_frontend_config" {
+  description = "Values to configure the frontend build in GitHub Actions."
+  value = {
+    authority = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.app.id}"
+    client_id = aws_cognito_user_pool_client.app.id
+    hosted_ui = "https://${aws_cognito_user_pool_domain.app.domain}.auth.${var.aws_region}.amazoncognito.com"
+  }
+}

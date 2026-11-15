@@ -16,4 +16,14 @@ variable "app_domain" {
   default     = "stride.mandla.tech"
 }
 
+variable "cognito_domain_prefix" {
+  description = "Globally unique Cognito hosted UI prefix for the Stride sign-in page."
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", var.cognito_domain_prefix))
+    error_message = "Use a lowercase, globally unique prefix containing only letters, numbers, and interior hyphens."
+  }
+}
+
 

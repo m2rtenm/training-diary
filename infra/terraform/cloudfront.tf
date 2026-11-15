@@ -26,8 +26,16 @@ resource "aws_cloudfront_response_headers_policy" "security" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+      content_security_policy = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self' data:; connect-src 'self' https://cognito-idp.${var.aws_region}.amazonaws.com https://${var.cognito_domain_prefix}.auth.${var.aws_region}.amazoncognito.com; object-src 'none'; base-uri 'self'; form-action 'self' https://${var.cognito_domain_prefix}.auth.${var.aws_region}.amazoncognito.com; frame-ancestors 'none'; upgrade-insecure-requests"
       override                = true
+    }
+  }
+
+  custom_headers_config {
+    items {
+      header   = "Permissions-Policy"
+      value    = "camera=(), geolocation=(), microphone=(), payment=(), usb=()"
+      override = true
     }
   }
 }

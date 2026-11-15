@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, ArrowDownToLine, ArrowUpFromLine, CalendarDays, Check, Clock3, Dumbbell, Footprints, Heart, Plus, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react'
+import { auth, authConfigured } from './auth'
 
 type SessionKind = 'Run' | 'Padel' | 'Gym' | 'Fencing' | 'Rehab' | 'Other'
 type Session = { id: string; date: string; kind: SessionKind; title: string; duration?: number; effort?: number; distance?: number; sets?: number; reps?: number; completed?: boolean; pain?: number; notes?: string }
@@ -26,6 +27,7 @@ function niceDate(date: string, options: Intl.DateTimeFormatOptions = { weekday:
   return new Intl.DateTimeFormat('en', options).format(new Date(`${date}T12:00:00`))
 }
 function App() {
+  const [authState, setAuthState] = useState<'loading' | 'signed-in' | 'signed-out' | 'error'>(authConfigured ? 'loading' : 'error')
   const [diary, setDiary] = useState<Diary>(readDiary)
   const [tab, setTab] = useState<'Overview' | 'History' | 'Rehab'>('Overview')
   const [modal, setModal] = useState(false)
@@ -34,6 +36,27 @@ function App() {
   const [customExercise, setCustomExercise] = useState('')
   const [importMessage, setImportMessage] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!auth) return
+    const manager = auth
+    let active = true
+    const callback = window.location.pathname === '/auth/callback'
+    const finish = async () => {
+      try {
+        if (callback) {
+          await manager.signinRedirectCallback()
+          window.history.replaceState({}, document.title, '/')
+        }
+        const user = await manager.getUser()
+        if (active) setAuthState(user && !user.expired ? 'signed-in' : 'signed-out')
+      } catch {
+        if (active) setAuthState('signed-out')
+      }
+    }
+    void finish()
+    return () => { active = false }
+  }, [])
 
   useEffect(() => { localStorage.setItem(KEY, JSON.stringify(diary)) }, [diary])
   const sorted = useMemo(() => [...diary.sessions].sort((a, b) => b.date.localeCompare(a.date)), [diary.sessions])
@@ -76,6 +99,8 @@ function App() {
   }
   function deleteSession(id: string) { update({ ...diary, sessions: diary.sessions.filter(s => s.id !== id) }) }
 
+  if (authState !== 'signed-in') return <div className="auth-screen"><section className="auth-card"><span className="brand-mark"><Activity size={21}/></span><div className="eyebrow">YOUR PRIVATE TRAINING DIARY</div><h1>Stride<span className="accent">.</span></h1>{authState === 'loading' ? <p>Checking your sign-in…</p> : authState === 'error' ? <><p>Sign-in is not configured for this build.</p><small>Set the Cognito frontend build variables and rebuild.</small></> : <><p>Sign in to open your diary on this device.</p><button className="button primary" onClick={() => void auth?.signinRedirect()}>Continue with secure sign-in</button></> }<small>Your diary stays in this browser. Sign-in does not sync or back up entries.</small></section></div>
+
   return <div className="app-shell">
     <aside className="sidebar">
       <a className="brand" href="#" aria-label="Stride home"><span className="brand-mark"><Activity size={20}/></span><span>stride<span className="brand-dot">.</span></span></a>
@@ -86,7 +111,7 @@ function App() {
       <div className="sidebar-bottom"><div className="privacy-card"><ShieldCheck size={18}/><div><b>Your data stays yours</b><p>Saved privately on this device.</p></div></div><div className="version">STRIDE DIARY <span>·</span> 0.1</div></div>
     </aside>
     <main className="main">
-      <header className="topbar"><div className="mobile-brand"><span className="brand-mark"><Activity size={19}/></span><b>stride<span className="brand-dot">.</span></b></div><div className="topbar-note"><span className="online-dot"/> Offline ready</div><button className="button primary top-add" onClick={() => setModal(true)}><Plus size={17}/> Log session</button></header>
+      <header className="topbar"><div className="mobile-brand"><span className="brand-mark"><Activity size={19}/></span><b>stride<span className="brand-dot">.</span></b></div><div className="topbar-note"><span className="online-dot"/> Offline ready</div><button className="button subtle signout" onClick={() => void auth?.signoutRedirect()}>Sign out</button><button className="button primary top-add" onClick={() => setModal(true)}><Plus size={17}/> Log session</button></header>
       <div className="content">
         {tab === 'Overview' && <>
           <div className="greeting"><div><div className="eyebrow">{niceDate(today(), { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase()}</div><h1>Good to see you<span className="accent">.</span></h1><p>Every step counts. Keep showing up for yourself.</p></div><div className="sun-stamp">✳</div></div>

@@ -1,0 +1,47 @@
+/* Warm editorial palette inspired by the reference's printed journal and soft still-life photography. */
+:root {
+  color: #292825;
+  background: #f7f4ed;
+  --ink: #292825;
+  --green: #bd593d;
+  --line: #e9e3d9;
+  --paper: #fffdfa;
+  --serif: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+.sidebar { background: #fffdfa; border-color: #e9e3d9; }
+.brand-mark { background: #f8e8df; color: #bd593d; }
+.brand-dot, .accent { color: #d87550; }
+.nav-item.active { color: #ad4e35; background: #f8ebe4; }
+.privacy-card { border-color: #eee5da; background: #fbf8f2; color: #b55d42; }
+.privacy-card b { color: #574b42; }
+.online-dot { background: #85a17e; box-shadow: 0 0 0 3px #edf1e9; }
+.primary { background: #bd593d; }
+.primary:hover { background: #a84932; }
+.stat-card, .session-list, .quick-card, .empty-state, .rehab-list, .empty-compact { background: #fffdfa; }
+.mint, .session-icon, .empty-art { background: #f4eee2; color: #91704c; }
+.peach { background: #faeae1; color: #c06a49; }
+.lavender { background: #f2eee5; color: #938060; }
+.text-button, .text-button.dark, .session-icon.run, .session-icon.rehab { color: #b4553a; }
+.session-icon.gym { background: #f4eee2; color: #987346; }
+.session-icon.padel { background: #edf0e9; color: #698065; }
+.session-icon.fencing { background: #f2eee5; color: #938060; }
+.session-icon.rehab { background: #faeae4; }
+.session-icon.other { background: #f1efe8; color: #80765f; }
+.prompt-card { background: #f5e9df; }
+.prompt-icon { background: #f1ddd0; color: #b45d41; }
+.prompt-card p { color: #796c62; }
+.prompt-flower { color: #eddbca; }
+.quick-actions button { border-color: #eee8df; }
+.rehab-callout { background: #fbede7; border-color: #f0ddd3; color: #80675d; }
+.rehab-callout svg { color: #b4553a; }
+.rehab-check { background: #f5eee2; color: #9b784f; }
+.soft { color: #af553c; }
+.dark-button { background: #34322d; }
+.text-button { color: #ad553d; }
+.add-exercise { border-color: #e7d9cc; }
+.session-row, .rehab-row { border-color: #f0ebe4; }
+.session-list { border-color: #e9e3d9; }
+@media (max-width: 620px) {
+  .mobile-nav { background: rgba(255,253,250,.97); border-color: #e9e3d9; }
+  .mobile-brand .brand-mark { background: #f8e8df; color: #bd593d; }
+}

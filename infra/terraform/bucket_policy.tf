@@ -1,5 +1,23 @@
 data "aws_iam_policy_document" "bucket_access" {
   statement {
+    sid       = "DenyInsecureTransport"
+    effect    = "Deny"
+    actions   = ["s3:*"]
+    resources = [aws_s3_bucket.app.arn, "${aws_s3_bucket.app.arn}/*"]
+
+    principals {
+      type        = "*"
+      identifiers = ["*"]
+    }
+
+    condition {
+      test     = "Bool"
+      variable = "aws:SecureTransport"
+      values   = ["false"]
+    }
+  }
+
+  statement {
     sid       = "AllowCloudFrontReadOnly"
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.app.arn}/*"]

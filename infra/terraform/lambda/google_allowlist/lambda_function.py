@@ -4,7 +4,7 @@ import os
 
 
 def handler(event, _context):
-    if event.get("triggerSource") != "PreSignUp_ExternalProvider":
+    if event.get("triggerSource") != "PreSignUp_ExternalProvider" or not event.get("userName", "").startswith("Google_"):
         raise Exception("Only the configured Google sign-in is allowed.")
 
     attributes = event.get("request", {}).get("userAttributes", {}) or {}

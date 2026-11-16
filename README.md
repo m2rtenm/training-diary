@@ -76,7 +76,10 @@ The dedicated role is restricted to this repository's `main` branch and only has
 
 - Cognito requires sign-in before the diary UI is displayed. OAuth uses authorization code + PKCE; tokens are kept in session storage, not local storage.
 - Static website files can still be downloaded by anyone who knows the URL. This architecture gates app functionality rather than the HTML/JavaScript delivery itself. Diary entries remain in this browser's local storage and are not transmitted to AWS.
-- Hosting uses private S3 origin access through CloudFront OAC; public S3 access is blocked.
-- HTTPS is enforced and the response policy sets CSP, HSTS, frame, MIME, and referrer protections.
+- The app loads diary data only after sign-in and clears it from memory at token expiration or sign-out. Imports are schema-validated and limited to 2 MB; strings, numeric fields, dates, and entry counts have bounds.
+- The PWA caches only the app shell and fingerprinted assets. It skips OAuth callback URLs, query-bearing requests, and arbitrary same-origin responses.
+- Hosting uses private S3 origin access through CloudFront OAC; public S3 access is blocked and the bucket policy denies insecure transport.
+- HTTPS is enforced and the response policy sets a restrictive CSP, HSTS, Permissions-Policy, frame, MIME, and referrer protections.
+- Dependency versions and GitHub Actions are pinned; CI fails on any npm advisory and Dependabot checks npm, actions, and Terraform updates weekly.
 - Avoid entering highly sensitive medical information on a shared device. Use the browser's device lock and keep backups secure.
 - Cognito authentication is not identity-bound encryption of local diary data. Anyone with access to the unlocked browser profile can read its local storage; sign out and device security matter.

@@ -18,10 +18,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '22'
           cache: npm
@@ -30,7 +30,7 @@ jobs:
         run: npm ci --loglevel=error
 
       - name: Check dependency advisories
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=low
 
       - name: Validate Cognito build configuration
         env:
@@ -50,7 +50,7 @@ jobs:
           VITE_COGNITO_HOSTED_UI: ${{ vars.COGNITO_HOSTED_UI }}
 
       - name: Upload production bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: training-diary-dist
           path: dist/
@@ -66,7 +66,7 @@ jobs:
       id-token: write
     steps:
       - name: Download production bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: training-diary-dist
           path: dist/
@@ -82,7 +82,7 @@ jobs:
           test -n "$CLOUDFRONT_DISTRIBUTION_ID" || { echo "Missing CLOUDFRONT_DISTRIBUTION_ID repository variable"; exit 1; }
 
       - name: Configure production AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6.3.0
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           role-session-name: stride-${{ github.run_id }}

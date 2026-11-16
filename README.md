@@ -21,16 +21,27 @@ npm run build
 
 ## Deploy to AWS with Terraform
 
-The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. It also creates a Cognito user pool with self-registration disabled, an OAuth authorization-code client, required software-token MFA, and a hosted sign-in domain. Create your own Cognito user administratively after apply. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. DNS remains with Zone.ee: after applying Terraform, add a CNAME for `stride` whose target is `terraform output -raw cloudfront_domain_name`. State is local by default; keep the state file private and back it up securely.
+The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. It also creates a Cognito user pool with Google federation, an OAuth authorization-code client, and a hosted sign-in domain. A Cognito pre-sign-up Lambda checks Google’s verified email against a one-address SSM allowlist, so only your identity can create a federated profile. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. DNS remains with Zone.ee: after applying Terraform, add a CNAME for `stride` whose target is `terraform output -raw cloudfront_domain_name`. State is local by default; keep the state file private and back it up securely.
 
 ```sh
 cd infra/terraform
 terraform init
 cp terraform.tfvars.example terraform.tfvars
 # Set cognito_domain_prefix in terraform.tfvars to a globally unique value.
+# Create the SSM parameters listed below before planning/applying.
 terraform plan
 terraform apply
 ```
+
+Before applying, create these Standard-tier SSM parameters in `eu-north-1`, all as `SecureString`:
+
+- `/training-diary/google_client_id`
+- `/training-diary/google_client_secret`
+- `/training-diary/allowed_emails` (your Google account email only)
+
+Terraform reads them during plan/apply. The decrypted provider secret is still present in Terraform state, so keep the local state file and backups private and encrypted. The credentials are not included in the frontend build or committed to source.
+
+In Google Auth Platform, use audience **External** and publishing status **Testing**, add only your Google account as a test user, and add `amazoncognito.com` as an authorized domain. For the Google web OAuth client, set the Cognito hosted UI hostname as an authorized JavaScript origin and add `https://<cognito-prefix>.auth.eu-north-1.amazoncognito.com/oauth2/idpresponse` as the authorized redirect URI. Under Data Access, request only `openid`, `https://www.googleapis.com/auth/userinfo.email`, and `https://www.googleapis.com/auth/userinfo.profile`. Cognito itself uses the corresponding scopes `openid email profile`.
 
 After Terraform is applied, run `terraform output -raw cloudfront_domain_name` from `infra/terraform` and use the returned CloudFront hostname as the DNS target. Add this record in Zone.ee's DNS management:
 
@@ -57,7 +68,7 @@ After the initial Terraform apply, add these values under the GitHub repository'
 - Variable `COGNITO_CLIENT_ID`: `terraform output -raw cognito_client_id`
 - Variable `COGNITO_HOSTED_UI`: `terraform output -raw cognito_hosted_ui_domain`
 
-Create your Cognito user with the AWS Cognito console (User pools → Stride pool → Users → Create user). Self-registration is disabled. The pool requires MFA enrollment; enroll an authenticator app during first sign-in. For local builds, copy `.env.example` to `.env.local` and set the same three values.
+On first Google sign-in, Cognito creates a federated profile only if the verified Google email matches `/training-diary/allowed_emails`. Keep your Google OAuth app in Testing mode and enable Google 2-Step Verification; Cognito delegates authentication and MFA to Google for federated users. For local builds, copy `.env.example` to `.env.local` and set the same three Cognito frontend values.
 
 The dedicated role is restricted to this repository's `main` branch and only has permission to upload/delete objects in the app bucket and create invalidations for this CloudFront distribution. The production account already has GitHub's OIDC provider registered. The workflow is in `.github/workflows/deploy.yml`.
 

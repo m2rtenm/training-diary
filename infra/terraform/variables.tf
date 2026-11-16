@@ -24,6 +24,5 @@ variable "cognito_domain_prefix" {
     condition     = can(regex("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", var.cognito_domain_prefix))
     error_message = "Use a lowercase, globally unique prefix containing only letters, numbers, and interior hyphens."
   }
+  default = "stride"
 }
-
-

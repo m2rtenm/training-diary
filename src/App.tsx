@@ -99,7 +99,7 @@ function App() {
   }
   function deleteSession(id: string) { update({ ...diary, sessions: diary.sessions.filter(s => s.id !== id) }) }
 
-  if (authState !== 'signed-in') return <div className="auth-screen"><section className="auth-card"><span className="brand-mark"><Activity size={21}/></span><div className="eyebrow">YOUR PRIVATE TRAINING DIARY</div><h1>Stride<span className="accent">.</span></h1>{authState === 'loading' ? <p>Checking your sign-in…</p> : authState === 'error' ? <><p>Sign-in is not configured for this build.</p><small>Set the Cognito frontend build variables and rebuild.</small></> : <><p>Sign in to open your diary on this device.</p><button className="button primary" onClick={() => void auth?.signinRedirect()}>Continue with secure sign-in</button></> }<small>Your diary stays in this browser. Sign-in does not sync or back up entries.</small></section></div>
+  if (authState !== 'signed-in') return <div className="auth-screen"><section className="auth-card"><span className="brand-mark"><Activity size={21}/></span><div className="eyebrow">YOUR PRIVATE TRAINING DIARY</div><h1>Stride<span className="accent">.</span></h1>{authState === 'loading' ? <p>Checking your sign-in…</p> : authState === 'error' ? <><p>Sign-in is not configured for this build.</p><small>Set the Cognito frontend build variables and rebuild.</small></> : <><p>Sign in to open your diary on this device.</p><button className="button primary" onClick={() => void auth?.signinRedirect({ extraQueryParams: { identity_provider: 'Google' } })}>Sign in with Google</button></> }<small>Your diary stays in this browser. Sign-in does not sync or back up entries.</small></section></div>
 
   return <div className="app-shell">
     <aside className="sidebar">

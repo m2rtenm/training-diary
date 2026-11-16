@@ -3,6 +3,7 @@ dist/
 .env*
 !.env.example
 .terraform/
+infra/terraform/lambda/google_allowlist.zip
 *.tfstate
 *.tfstate.*
 terraform.tfvars

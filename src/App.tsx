@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Activity, ArrowDownToLine, ArrowUpFromLine, CalendarDays, Check, Clock3, Dumbbell, Footprints, Heart, Plus, ShieldCheck, Sparkles, Trash2, X } from 'lucide-react'
-import { auth, authConfigured } from './auth'
+import { auth, authConfigured, signOutFromCognito } from './auth'
 import { MAX_DIARY_BYTES, validateDiary, type Diary, type Session, type SessionKind } from './diaryValidation'
 
 const KEY = 'stride-diary-v1'
@@ -145,7 +145,7 @@ function App() {
     setDiary(emptyDiary)
     setStorageReady(false)
     setAuthState('signed-out')
-    void auth?.signoutRedirect().catch(() => setImportMessage('Sign-out could not reach Cognito. Close this tab to clear the in-memory diary.'))
+    void signOutFromCognito().catch(() => setImportMessage('Sign-out could not reach Cognito. Close this tab to clear the in-memory diary.'))
   }
 
   if (authState !== 'signed-in') return <div className="auth-screen"><section className="auth-card"><span className="brand-mark"><Activity size={21}/></span><div className="eyebrow">YOUR PRIVATE TRAINING DIARY</div><h1>Stride<span className="accent">.</span></h1>{authState === 'loading' ? <p>Checking your sign-in…</p> : authState === 'error' ? <><p>Sign-in is not configured for this build.</p><small>Set the Cognito frontend build variables and rebuild.</small></> : <><p>Sign in to open your diary on this device.</p><button className="button primary" onClick={() => void auth?.signinRedirect({ extraQueryParams: { identity_provider: 'Google', prompt: 'login' } })}>Sign in with Google</button></> }<small>Your diary stays in this browser. Sign-in does not sync or back up entries.</small></section></div>

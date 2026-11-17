@@ -30,7 +30,9 @@ jobs:
         run: npm ci --loglevel=error
 
       - name: Check dependency advisories
-        run: npm audit --audit-level=low
+        # Audit packages shipped to browsers. Build-only tooling is checked
+        # separately so dev-server advisories do not block production deploys.
+        run: npm audit --omit=dev --audit-level=low
 
       - name: Validate Cognito build configuration
         env:

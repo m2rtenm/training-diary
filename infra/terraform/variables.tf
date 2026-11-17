@@ -26,3 +26,9 @@ variable "cognito_domain_prefix" {
   }
   default = "stride"
 }
+
+variable "lambda_sync_memory_mb" {
+  description = "Memory allocated to the diary sync Lambda. Keep this small to stay within free usage quotas."
+  type        = number
+  default     = 128
+}

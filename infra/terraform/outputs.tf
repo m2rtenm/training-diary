@@ -56,3 +56,13 @@ output "cognito_frontend_config" {
     hosted_ui = "https://${aws_cognito_user_pool_domain.app.domain}.auth.${var.aws_region}.amazoncognito.com"
   }
 }
+
+output "diary_api_url" {
+  description = "Lambda Function URL for Cognito-authenticated diary synchronization."
+  value       = aws_lambda_function_url.diary_sync.function_url
+}
+
+output "diary_table_name" {
+  description = "DynamoDB table storing the user's synced diary."
+  value       = aws_dynamodb_table.diary.name
+}

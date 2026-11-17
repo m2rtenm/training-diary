@@ -4,6 +4,7 @@ dist/
 !.env.example
 .terraform/
 infra/terraform/lambda/google_allowlist.zip
+infra/terraform/lambda/diary_sync.zip
 *.tfstate
 *.tfstate.*
 terraform.tfvars

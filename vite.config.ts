@@ -11,6 +11,7 @@ export default defineConfig(({ mode }) => {
       __COGNITO_AUTHORITY__: JSON.stringify(env.VITE_COGNITO_AUTHORITY ?? ''),
       __COGNITO_CLIENT_ID__: JSON.stringify(env.VITE_COGNITO_CLIENT_ID ?? ''),
       __COGNITO_HOSTED_UI__: JSON.stringify(env.VITE_COGNITO_HOSTED_UI ?? ''),
+      __STRIDE_API_URL__: JSON.stringify(env.VITE_STRIDE_API_URL ?? ''),
     },
   }
 })

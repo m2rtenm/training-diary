@@ -37,10 +37,12 @@ jobs:
           COGNITO_AUTHORITY: ${{ vars.COGNITO_AUTHORITY }}
           COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
           COGNITO_HOSTED_UI: ${{ vars.COGNITO_HOSTED_UI }}
+          STRIDE_API_URL: ${{ vars.STRIDE_API_URL }}
         run: |
           test -n "$COGNITO_AUTHORITY" || { echo "Missing COGNITO_AUTHORITY repository variable"; exit 1; }
           test -n "$COGNITO_CLIENT_ID" || { echo "Missing COGNITO_CLIENT_ID repository variable"; exit 1; }
           test -n "$COGNITO_HOSTED_UI" || { echo "Missing COGNITO_HOSTED_UI repository variable"; exit 1; }
+          test -n "$STRIDE_API_URL" || { echo "Missing STRIDE_API_URL repository variable"; exit 1; }
 
       - name: Build PWA
         run: npm run build
@@ -48,6 +50,7 @@ jobs:
           VITE_COGNITO_AUTHORITY: ${{ vars.COGNITO_AUTHORITY }}
           VITE_COGNITO_CLIENT_ID: ${{ vars.COGNITO_CLIENT_ID }}
           VITE_COGNITO_HOSTED_UI: ${{ vars.COGNITO_HOSTED_UI }}
+          VITE_STRIDE_API_URL: ${{ vars.STRIDE_API_URL }}
 
       - name: Upload production bundle
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

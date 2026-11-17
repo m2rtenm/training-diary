@@ -1,6 +1,6 @@
 # Stride training diary
 
-A Cognito-authenticated, offline-friendly training and rehabilitation diary PWA. Entries are stored in the browser on the device; Cognito is used only to control app access. There is no diary API, analytics, or cloud database. Use **Export backup** regularly to save a JSON copy somewhere safe; importing a backup replaces the current diary on that device.
+A Cognito-authenticated, offline-friendly training and rehabilitation diary PWA. Diary changes are saved locally first, then synced to an encrypted DynamoDB record through a Cognito-token-validated Lambda Function URL. On another signed-in device, Stride downloads the cloud diary. Changes made while offline stay in the browser and sync when the connection returns. Use **Export backup** for an independent copy.
 
 Add the exercises and instructions from your physiotherapist in the Rehab view. The app records sessions and how they felt; it does not prescribe a progression or assess an injury.
 
@@ -21,7 +21,7 @@ npm run build
 
 ## Deploy to AWS with Terraform
 
-The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. It also creates a Cognito user pool with Google federation, an OAuth authorization-code client, and a hosted sign-in domain. A Cognito pre-sign-up Lambda checks Google’s verified email against a one-address SSM allowlist, so only your identity can create a federated profile. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. DNS remains with Zone.ee: after applying Terraform, add a CNAME for `stride` whose target is `terraform output -raw cloudfront_domain_name`. State is local by default; keep the state file private and back it up securely.
+The Terraform stack creates a private, encrypted S3 bucket and a CloudFront distribution with Origin Access Control, HTTPS redirect, and security headers. It also creates a Cognito user pool with Google federation, an OAuth authorization-code client, a hosted sign-in domain, a single-user allowlist check, a provisioned DynamoDB diary table, and a small Lambda sync endpoint. Lambda verifies the Cognito access token and uses a least-privilege role scoped to the one table. The S3 bucket is never public. It attaches the existing issued `*.mandla.tech` ACM certificate to CloudFront. CloudFront requires the viewer certificate to be in `us-east-1`; Terraform looks it up there. DNS remains with Zone.ee: after applying Terraform, add a CNAME for `stride` whose target is `terraform output -raw cloudfront_domain_name`. State is local by default; keep the state file private and back it up securely.
 
 ```sh
 cd infra/terraform
@@ -53,7 +53,7 @@ After Terraform is applied, run `terraform output -raw cloudfront_domain_name` f
 
 Zone.ee documents CNAME as an available record type in its DNS manager. DNS changes can take time to propagate; its guide says 1–2 hours on nearby networks and up to 24 hours worldwide ([Zone.ee DNS record guide](https://www.zone.ee/help/en/kb/changing-dns-records-2/)).
 
-AWS free usage is account- and date-dependent. This setup uses services that may have free allowances, but exceeding them can incur charges, and CloudFront usage is not a guarantee of $0. Check the current [AWS Free Tier](https://aws.amazon.com/free/) before deploying. The app works locally as a PWA without AWS.
+The diary table uses provisioned capacity of 25 read and 25 write units, within DynamoDB's Always Free allowance, and each cloud copy is limited to 20 KB compressed so one write fits within that capacity. Lambda uses the account's shared concurrency pool. The production region currently has a concurrency quota of 10, and AWS requires all 10 to remain unreserved, so Terraform cannot set a per-function concurrency cap. Lambda and DynamoDB publish Always Free allowances, but AWS does not guarantee a $0 bill: quotas are shared across the account, eligibility can depend on account status, and other account usage or exceeding allowances can incur charges. Review current [DynamoDB pricing](https://aws.amazon.com/dynamodb/pricing/), [Lambda pricing](https://aws.amazon.com/lambda/pricing/), and [AWS Free Tier details](https://docs.aws.amazon.com/us_en/awsaccountbilling/latest/aboutv2/free-tier.html). The app works locally as a PWA without AWS.
 
 ## CI/CD deployment
 
@@ -67,15 +67,18 @@ After the initial Terraform apply, add these values under the GitHub repository'
 - Variable `COGNITO_AUTHORITY`: `terraform output -raw cognito_issuer`
 - Variable `COGNITO_CLIENT_ID`: `terraform output -raw cognito_client_id`
 - Variable `COGNITO_HOSTED_UI`: `terraform output -raw cognito_hosted_ui_domain`
+- Variable `STRIDE_API_URL`: `terraform output -raw diary_api_url`
 
-On first Google sign-in, Cognito creates a federated profile only if the verified Google email matches `/training-diary/allowed_emails`. Keep your Google OAuth app in Testing mode and enable Google 2-Step Verification; Cognito delegates authentication and MFA to Google for federated users. For local builds, copy `.env.example` to `.env.local` and set the same three Cognito frontend values.
+On first Google sign-in, Cognito creates a federated profile only if the verified Google email matches `/training-diary/allowed_emails`. Keep your Google OAuth app in Testing mode and enable Google 2-Step Verification; Cognito delegates authentication and MFA to Google for federated users. For local builds, copy `.env.example` to `.env.local` and set the three Cognito frontend values plus `VITE_STRIDE_API_URL` from `terraform output -raw diary_api_url`.
 
 The dedicated role is restricted to this repository's `main` branch and only has permission to upload/delete objects in the app bucket and create invalidations for this CloudFront distribution. The production account already has GitHub's OIDC provider registered. The workflow is in `.github/workflows/deploy.yml`.
 
 ## Data and security
 
 - Cognito requires sign-in before the diary UI is displayed. OAuth uses authorization code + PKCE; tokens are kept in session storage, not local storage.
-- Static website files can still be downloaded by anyone who knows the URL. This architecture gates app functionality rather than the HTML/JavaScript delivery itself. Diary entries remain in this browser's local storage and are not transmitted to AWS.
+- Static website files can still be downloaded by anyone who knows the URL. This architecture gates app functionality rather than the HTML/JavaScript delivery itself. Diary entries are transmitted only to the sync endpoint after sign-in and are stored in your DynamoDB table; browser storage remains the offline working copy.
+- The first successful sync merges existing browser-only entries into the cloud diary. When both devices change the same entry while offline, the local version wins; other changes merge by entry ID. Deletions sync too. Keep backups before major changes.
+- Sync is limited to 20 KB compressed per diary record. If this limit is reached, changes remain saved locally and the app reports the cloud sync error.
 - The app loads diary data only after sign-in and clears it from memory at token expiration or sign-out. Imports are schema-validated and limited to 2 MB; strings, numeric fields, dates, and entry counts have bounds.
 - The PWA caches only the app shell and fingerprinted assets. It skips OAuth callback URLs, query-bearing requests, and arbitrary same-origin responses.
 - Hosting uses private S3 origin access through CloudFront OAC; public S3 access is blocked and the bucket policy denies insecure transport.
